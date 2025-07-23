@@ -16,7 +16,7 @@ function App() {
 
   useEffect(() => {
     axios
-      .get("http://localhost:5000/options")
+      .get("https://car-price-predictor-zk01.onrender.com/recommend")
       .then((response) => {
         setCompanies(response.data.companies);
         setModelsByCompany(response.data.models_by_company);
