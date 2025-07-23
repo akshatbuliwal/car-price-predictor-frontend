@@ -1,150 +1,72 @@
-import React, { useEffect, useState } from "react";
-import axios from "axios";
-import "./App.css";
+from flask import Flask, request, jsonify
+from flask_cors import CORS
+import pandas as pd
+import pickle
+import numpy as np
 
-function App() {
-  const [companies, setCompanies] = useState([]);
-  const [modelsByCompany, setModelsByCompany] = useState({});
-  const [selectedCompany, setSelectedCompany] = useState("");
-  const [selectedModel, setSelectedModel] = useState("");
-  const [fuelTypes, setFuelTypes] = useState([]);
-  const [selectedFuelType, setSelectedFuelType] = useState("");
-  const [years, setYears] = useState([]);
-  const [selectedYear, setSelectedYear] = useState("");
-  const [kmsDriven, setKmsDriven] = useState("");
-  const [result, setResult] = useState(null);
+app = Flask(__name__)
+CORS(app)
 
-  useEffect(() => {
-    axios
-      .get("https://car-price-predictor-zk01.onrender.com/recommend")
-      .then((response) => {
-        setCompanies(response.data.companies);
-        setModelsByCompany(response.data.models_by_company);
-        setFuelTypes(response.data.fuel_types);
-        setYears(response.data.years);
-      })
-      .catch((error) => {
-        console.error("Error fetching dropdown options:", error);
-      });
-  }, []);
+# Load model and preprocessing objects
+model = pickle.load(open("LinearRegressionModel.pkl", "rb"))
+onehot = pickle.load(open("OneHotEncoder.pkl", "rb"))
+scaler = pickle.load(open("StandardScaler.pkl", "rb"))
+data = pd.read_csv("Cleaned_Car_data.csv")
 
-  const handleCompanyChange = (e) => {
-    const company = e.target.value;
-    setSelectedCompany(company);
-    setSelectedModel(""); // Reset model when company changes
-  };
-
-  const handlePredict = () => {
-    if (!selectedCompany || !selectedModel || !selectedYear || !selectedFuelType || !kmsDriven) {
-      alert("Please fill in all fields.");
-      return;
-    }
-
-    axios
-      .post(
-        "https://car-price-predictor-zk01.onrender.com/predict",
-        {
-          company: selectedCompany,
-          name: selectedModel,
-          year: selectedYear,
-          fuel_type: selectedFuelType,
-          kms_driven: kmsDriven
-        },
-        {
-          headers: { "Content-Type": "application/json" }
+@app.route("/options", methods=["GET"])
+def get_dropdown_options():
+    try:
+        companies = sorted(data["company"].unique())
+        models_by_company = {
+            company: sorted(data[data["company"] == company]["name"].unique())
+            for company in companies
         }
-      )
-      .then((response) => {
-        setResult(response.data.estimated_price);
-      })
-      .catch((error) => {
-        console.error("Prediction failed:", error);
-        alert("Prediction failed. Please check your inputs or server.");
-      });
-  };
+        years = sorted([int(y) for y in data["year"].unique()])
+        fuel_types = sorted(data["fuel_type"].unique())
 
-  return (
-    <div className="App">
-      <h1>🚗 Car Price Predictor</h1>
+        return jsonify({
+            "companies": companies,
+            "models_by_company": models_by_company,
+            "years": years,
+            "fuel_types": fuel_types
+        })
+    except Exception as e:
+        print("❌ Error in /options:", str(e))
+        return jsonify({"error": str(e)}), 500
 
-      <div className="form-group">
-        <label>Company:</label>
-        <select value={selectedCompany} onChange={handleCompanyChange}>
-          <option value="">Select Company</option>
-          {companies.map((company) => (
-            <option key={company} value={company}>
-              {company}
-            </option>
-          ))}
-        </select>
-      </div>
+@app.route("/predict", methods=["POST"])
+def predict_price():
+    try:
+        content = request.json
+        print("📦 Received JSON:", content)
 
-      {selectedCompany && (
-        <div className="form-group">
-          <label>Model:</label>
-          <select
-            value={selectedModel}
-            onChange={(e) => setSelectedModel(e.target.value)}
-          >
-            <option value="">Select Model</option>
-            {modelsByCompany[selectedCompany]?.map((model) => (
-              <option key={model} value={model}>
-                {model}
-              </option>
-            ))}
-          </select>
-        </div>
-      )}
+        # Validate required fields
+        required_fields = ["company", "name", "year", "fuel_type", "kms_driven"]
+        if not content or not all(field in content for field in required_fields):
+            raise ValueError("Missing one or more required fields")
 
-      <div className="form-group">
-        <label>Year:</label>
-        <select
-          value={selectedYear}
-          onChange={(e) => setSelectedYear(e.target.value)}
-        >
-          <option value="">Select Year</option>
-          {years.map((year) => (
-            <option key={year} value={year}>
-              {year}
-            </option>
-          ))}
-        </select>
-      </div>
+        # Extract and preprocess input
+        company = content["company"]
+        name = content["name"]
+        year = int(content["year"])
+        fuel_type = content["fuel_type"]
+        kms_driven = int(content["kms_driven"])
 
-      <div className="form-group">
-        <label>Fuel Type:</label>
-        <select
-          value={selectedFuelType}
-          onChange={(e) => setSelectedFuelType(e.target.value)}
-        >
-          <option value="">Select Fuel Type</option>
-          {fuelTypes.map((fuel) => (
-            <option key={fuel} value={fuel}>
-              {fuel}
-            </option>
-          ))}
-        </select>
-      </div>
+        query_df = pd.DataFrame([[name, company, year, kms_driven, fuel_type]],
+                                columns=["name", "company", "year", "kms_driven", "fuel_type"])
 
-      <div className="form-group">
-        <label>KMs Driven:</label>
-        <input
-          type="number"
-          placeholder="Enter KMs driven"
-          value={kmsDriven}
-          onChange={(e) => setKmsDriven(e.target.value)}
-        />
-      </div>
+        transformed_cat = onehot.transform(query_df[["name", "company", "fuel_type"]])
+        scaled_num = scaler.transform(query_df[["year", "kms_driven"]])
+        final_input = np.hstack((transformed_cat.toarray(), scaled_num))
 
-      <button onClick={handlePredict}>Predict Price</button>
+        # Make prediction
+        predicted_price = model.predict(final_input)[0]
 
-      {result !== null && (
-        <h3 style={{ marginTop: "20px" }}>
-          Estimated Price: ₹ {result} Lakhs
-        </h3>
-      )}
-    </div>
-  );
-}
+        return jsonify({"estimated_price": round(predicted_price, 2)})
 
-export default App;
+    except Exception as e:
+        print("❌ Error during prediction:", str(e))
+        return jsonify({"error": str(e)}), 400
+
+if __name__ == "__main__":
+    app.run(debug=True)
