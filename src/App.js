@@ -42,7 +42,7 @@ function App() {
 
     axios
       .post(
-        "http://localhost:5000/predict",
+        "https://car-price-predictor-zk01.onrender.com/predict",
         {
           company: selectedCompany,
           name: selectedModel,
