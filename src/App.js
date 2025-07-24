@@ -1,76 +1,121 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import axios from "axios";
 import "./App.css";
 
 function App() {
-  const backendURL = "https://car-price-predictor-zk01.onrender.com";
-
   const [companies, setCompanies] = useState([]);
   const [modelsByCompany, setModelsByCompany] = useState({});
-  const [fuelTypes, setFuelTypes] = useState([]);
-  const [years, setYears] = useState([]);
-
   const [selectedCompany, setSelectedCompany] = useState("");
   const [selectedModel, setSelectedModel] = useState("");
-  const [selectedFuel, setSelectedFuel] = useState("");
+  const [fuelTypes, setFuelTypes] = useState([]);
+  const [selectedFuelType, setSelectedFuelType] = useState("");
+  const [years, setYears] = useState([]);
   const [selectedYear, setSelectedYear] = useState("");
   const [kmsDriven, setKmsDriven] = useState("");
-  const [predictedPrice, setPredictedPrice] = useState(null);
+  const [result, setResult] = useState(null);
 
-  // Fetch dropdown data on page load
+  const BASE_URL = "https://car-price-predictor-zk01.onrender.com";
+
   useEffect(() => {
-    axios.get(`${backendURL}/options`)
-      .then(response => {
+    axios
+      .get(`${BASE_URL}/options`)
+      .then((response) => {
         setCompanies(response.data.companies);
         setModelsByCompany(response.data.models_by_company);
         setFuelTypes(response.data.fuel_types);
-        setYears(response.data.years.reverse()); // show recent years first
+        setYears(response.data.years);
       })
-      .catch(error => console.error("Error fetching options:", error));
+      .catch((error) => {
+        console.error("Error fetching dropdown options:", error);
+        alert("Failed to load dropdowns. Is the backend awake?");
+      });
   }, []);
 
-  const handlePredict = () => {
-    const payload = {
-      company: selectedCompany,
-      name: selectedModel,
-      fuel_type: selectedFuel,
-      year: parseInt(selectedYear),
-      kms_driven: parseInt(kmsDriven)
-    };
+  const handleCompanyChange = (e) => {
+    const company = e.target.value;
+    setSelectedCompany(company);
+    setSelectedModel(""); // Reset model when company changes
+  };
 
-    axios.post(`${backendURL}/predict`, payload)
-      .then(response => setPredictedPrice(response.data.predicted_price))
-      .catch(error => {
+  const handlePredict = () => {
+    if (
+      !selectedCompany ||
+      !selectedModel ||
+      !selectedYear ||
+      !selectedFuelType ||
+      !kmsDriven
+    ) {
+      alert("Please fill in all fields.");
+      return;
+    }
+
+    axios
+      .post(
+        `${BASE_URL}/predict`,
+        {
+          company: selectedCompany,
+          name: selectedModel,
+          year: parseInt(selectedYear),
+          fuel_type: selectedFuelType,
+          kms_driven: parseInt(kmsDriven),
+        },
+        {
+          headers: { "Content-Type": "application/json" },
+        }
+      )
+      .then((response) => {
+        setResult(response.data.estimated_price);
+      })
+      .catch((error) => {
         console.error("Prediction failed:", error);
-        setPredictedPrice(null);
+        alert("Prediction failed. Please check your inputs or try again.");
       });
   };
 
   return (
     <div className="App">
-      <h1>Car Price Predictor</h1>
+      <h1>🚗 Car Price Predictor</h1>
 
       <div className="form-group">
         <label>Company:</label>
-        <select value={selectedCompany} onChange={e => {
-          setSelectedCompany(e.target.value);
-          setSelectedModel(""); // Reset model
-        }}>
-          <option value="">Select</option>
-          {companies.map(c => <option key={c}>{c}</option>)}
+        <select value={selectedCompany} onChange={handleCompanyChange}>
+          <option value="">Select Company</option>
+          {companies.map((company) => (
+            <option key={company} value={company}>
+              {company}
+            </option>
+          ))}
         </select>
       </div>
 
+      {selectedCompany && (
+        <div className="form-group">
+          <label>Model:</label>
+          <select
+            value={selectedModel}
+            onChange={(e) => setSelectedModel(e.target.value)}
+          >
+            <option value="">Select Model</option>
+            {modelsByCompany[selectedCompany]?.map((model) => (
+              <option key={model} value={model}>
+                {model}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
+
       <div className="form-group">
-        <label>Car Model:</label>
+        <label>Year:</label>
         <select
-          value={selectedModel}
-          onChange={e => setSelectedModel(e.target.value)}
-          disabled={!selectedCompany}
+          value={selectedYear}
+          onChange={(e) => setSelectedYear(e.target.value)}
         >
-          <option value="">Select</option>
-          {selectedCompany && modelsByCompany[selectedCompany]?.map(m => (
-            <option key={m}>{m}</option>
+          <option value="">Select Year</option>
+          {years.map((year) => (
+            <option key={year} value={year}>
+              {year}
+            </option>
           ))}
         </select>
       </div>
@@ -78,40 +123,34 @@ function App() {
       <div className="form-group">
         <label>Fuel Type:</label>
         <select
-          value={selectedFuel}
-          onChange={e => setSelectedFuel(e.target.value)}
+          value={selectedFuelType}
+          onChange={(e) => setSelectedFuelType(e.target.value)}
         >
-          <option value="">Select</option>
-          {fuelTypes.map(f => <option key={f}>{f}</option>)}
+          <option value="">Select Fuel Type</option>
+          {fuelTypes.map((fuel) => (
+            <option key={fuel} value={fuel}>
+              {fuel}
+            </option>
+          ))}
         </select>
       </div>
 
       <div className="form-group">
-        <label>Year:</label>
-        <select
-          value={selectedYear}
-          onChange={e => setSelectedYear(e.target.value)}
-        >
-          <option value="">Select</option>
-          {years.map(y => <option key={y}>{y}</option>)}
-        </select>
-      </div>
-
-      <div className="form-group">
-        <label>Kilometers Driven:</label>
+        <label>KMs Driven:</label>
         <input
           type="number"
+          placeholder="Enter KMs driven"
           value={kmsDriven}
-          onChange={e => setKmsDriven(e.target.value)}
+          onChange={(e) => setKmsDriven(e.target.value)}
         />
       </div>
 
       <button onClick={handlePredict}>Predict Price</button>
 
-      {predictedPrice !== null && (
-        <div className="result">
-          <h2>Predicted Price: ₹{predictedPrice.toLocaleString()}</h2>
-        </div>
+      {result !== null && (
+        <h3 style={{ marginTop: "20px" }}>
+          Estimated Price: ₹ {result} Lakhs
+        </h3>
       )}
     </div>
   );
