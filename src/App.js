@@ -13,11 +13,16 @@ function App() {
   const [selectedYear, setSelectedYear] = useState("");
   const [kmsDriven, setKmsDriven] = useState("");
   const [result, setResult] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  const BASE_URL = "https://car-price-predictor-zk01.onrender.com";
+
 
   const BASE_URL = "https://car-price-predictor-zk01.onrender.com";
 
 
   useEffect(() => {
+<<<<<<< HEAD
     axios
       .get(`${BASE_URL}/options`)
       .then((response) => {
@@ -30,14 +35,36 @@ function App() {
         console.error("Error fetching dropdown options:", error);
         alert("Failed to load dropdowns. Is the backend awake?");
       });
+=======
+    // Fetch dropdown options from backend
+    const fetchOptions = async () => {
+      try {
+        const response = await axios.get(`${BASE_URL}/options`);
+        console.log("✅ Dropdown data received:", response.data);
+
+        setCompanies(response.data.companies || []);
+        setModelsByCompany(response.data.models_by_company || {});
+        setFuelTypes(response.data.fuel_types || []);
+        setYears(response.data.years || []);
+      } catch (error) {
+        console.error("❌ Error fetching dropdown options:", error);
+        alert("Failed to load dropdowns. Is the backend awake?");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchOptions();
+>>>>>>> b75c482 (Fix dropdown and API integration)
   }, []);
 
   const handleCompanyChange = (e) => {
-    const company = e.target.value;
+    const company = e.target.value.trim();
     setSelectedCompany(company);
-    setSelectedModel(""); // Reset model when company changes
+    setSelectedModel(""); // reset model
   };
 
+<<<<<<< HEAD
   const handlePredict = () => {
     if (
       !selectedCompany ||
@@ -46,12 +73,21 @@ function App() {
       !selectedFuelType ||
       !kmsDriven
     ) {
+=======
+  const handlePredict = async () => {
+    if (!selectedCompany || !selectedModel || !selectedYear || !selectedFuelType || !kmsDriven) {
+>>>>>>> b75c482 (Fix dropdown and API integration)
       alert("Please fill in all fields.");
       return;
     }
 
+<<<<<<< HEAD
     axios
       .post(
+=======
+    try {
+      const response = await axios.post(
+>>>>>>> b75c482 (Fix dropdown and API integration)
         `${BASE_URL}/predict`,
         {
           company: selectedCompany,
@@ -60,6 +96,7 @@ function App() {
           fuel_type: selectedFuelType,
           kms_driven: parseInt(kmsDriven),
         },
+<<<<<<< HEAD
         {
           headers: { "Content-Type": "application/json" },
         }
@@ -71,12 +108,28 @@ function App() {
         console.error("Prediction failed:", error);
         alert("Prediction failed. Please check your inputs or try again.");
       });
+=======
+        { headers: { "Content-Type": "application/json" } }
+      );
+
+      console.log("✅ Prediction response:", response.data);
+      setResult(response.data.estimated_price);
+    } catch (error) {
+      console.error("❌ Prediction failed:", error);
+      alert("Prediction failed. Please check your inputs or try again.");
+    }
+>>>>>>> b75c482 (Fix dropdown and API integration)
   };
+
+  if (loading) {
+    return <p>Loading dropdowns...</p>;
+  }
 
   return (
     <div className="App">
       <h1>🚗 Car Price Predictor</h1>
 
+      {/* Company Dropdown */}
       <div className="form-group">
         <label>Company:</label>
         <select value={selectedCompany} onChange={handleCompanyChange}>
@@ -89,6 +142,7 @@ function App() {
         </select>
       </div>
 
+      {/* Model Dropdown */}
       {selectedCompany && (
         <div className="form-group">
           <label>Model:</label>
@@ -106,12 +160,10 @@ function App() {
         </div>
       )}
 
+      {/* Year Dropdown */}
       <div className="form-group">
         <label>Year:</label>
-        <select
-          value={selectedYear}
-          onChange={(e) => setSelectedYear(e.target.value)}
-        >
+        <select value={selectedYear} onChange={(e) => setSelectedYear(e.target.value)}>
           <option value="">Select Year</option>
           {years.map((year) => (
             <option key={year} value={year}>
@@ -121,12 +173,10 @@ function App() {
         </select>
       </div>
 
+      {/* Fuel Type Dropdown */}
       <div className="form-group">
         <label>Fuel Type:</label>
-        <select
-          value={selectedFuelType}
-          onChange={(e) => setSelectedFuelType(e.target.value)}
-        >
+        <select value={selectedFuelType} onChange={(e) => setSelectedFuelType(e.target.value)}>
           <option value="">Select Fuel Type</option>
           {fuelTypes.map((fuel) => (
             <option key={fuel} value={fuel}>
@@ -136,6 +186,7 @@ function App() {
         </select>
       </div>
 
+      {/* KMs Driven Input */}
       <div className="form-group">
         <label>KMs Driven:</label>
         <input
@@ -146,8 +197,10 @@ function App() {
         />
       </div>
 
+      {/* Predict Button */}
       <button onClick={handlePredict}>Predict Price</button>
 
+      {/* Result Display */}
       {result !== null && (
         <h3 style={{ marginTop: "20px" }}>
           Estimated Price: ₹ {result} Lakhs
