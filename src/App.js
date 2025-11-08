@@ -263,6 +263,85 @@ function App() {
         </select>
 
       </div>
+<<<<<<< HEAD
+=======
+
+
+
+      {/* Fuel Type Dropdown */}
+
+      <div className="form-group">
+
+        <label>Fuel Type:</label>
+
+        <select value={selectedFuelType} onChange={(e) => setSelectedFuelType(e.target.value)}>
+
+          <option value="">Select Fuel Type</option>
+
+          {fuelTypes.map((fuel) => (
+
+            <option key={fuel} value={fuel}>
+
+              {fuel}
+
+            </option>
+
+          ))}
+
+        </select>
+
+      </div>
+
+
+
+      {/* KMs Driven Input */}
+
+      <div className="form-group">
+
+        <label>KMs Driven:</label>
+
+        <input
+
+          type="number"
+
+          placeholder="Enter KMs driven"
+
+          value={kmsDriven}
+
+          onChange={(e) => setKmsDriven(e.target.value)}
+
+        />
+
+      </div>
+
+
+
+      {/* Predict Button */}
+
+      <button onClick={handlePredict}>Predict Price</button>
+
+
+
+      {/* Result Display */}
+
+      {result !== null && (
+
+        <h3 style={{ marginTop: "20px" }}>
+
+          Estimated Price: ₹ {result} Lakhs
+
+        </h3>
+
+      )}
+
+    </div>
+
+  );
+
+}
+
+
+>>>>>>> 91496867d27d781e00123ac7323329eecc8a2145
 
 
 
