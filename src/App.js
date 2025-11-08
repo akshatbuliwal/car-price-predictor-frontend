@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import "./App.css";
+// NOTE: We MUST remove alert() for production apps. I will use a simple state message later if we make more changes.
 
 function App() {
   const [companies, setCompanies] = useState([]);
@@ -15,27 +16,10 @@ function App() {
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(true);
 
+  // FIX: This was declared twice in the conflicted code. We only keep one.
   const BASE_URL = "https://car-price-predictor-zk01.onrender.com";
-
-
-  const BASE_URL = "https://car-price-predictor-zk01.onrender.com";
-
 
   useEffect(() => {
-<<<<<<< HEAD
-    axios
-      .get(`${BASE_URL}/options`)
-      .then((response) => {
-        setCompanies(response.data.companies);
-        setModelsByCompany(response.data.models_by_company);
-        setFuelTypes(response.data.fuel_types);
-        setYears(response.data.years);
-      })
-      .catch((error) => {
-        console.error("Error fetching dropdown options:", error);
-        alert("Failed to load dropdowns. Is the backend awake?");
-      });
-=======
     // Fetch dropdown options from backend
     const fetchOptions = async () => {
       try {
@@ -48,46 +32,30 @@ function App() {
         setYears(response.data.years || []);
       } catch (error) {
         console.error("❌ Error fetching dropdown options:", error);
-        alert("Failed to load dropdowns. Is the backend awake?");
+        // Using window.alert for simplicity based on original code, but this should be replaced by a modal in a real app
+        window.alert("Failed to load dropdowns. Is the backend awake?");
       } finally {
         setLoading(false);
       }
     };
 
     fetchOptions();
->>>>>>> b75c482 (Fix dropdown and API integration)
-  }, []);
+  }, []); // Empty array ensures this runs only once on mount
 
   const handleCompanyChange = (e) => {
     const company = e.target.value.trim();
     setSelectedCompany(company);
-    setSelectedModel(""); // reset model
+    setSelectedModel(""); // reset model when company changes
   };
 
-<<<<<<< HEAD
-  const handlePredict = () => {
-    if (
-      !selectedCompany ||
-      !selectedModel ||
-      !selectedYear ||
-      !selectedFuelType ||
-      !kmsDriven
-    ) {
-=======
   const handlePredict = async () => {
     if (!selectedCompany || !selectedModel || !selectedYear || !selectedFuelType || !kmsDriven) {
->>>>>>> b75c482 (Fix dropdown and API integration)
-      alert("Please fill in all fields.");
+      window.alert("Please fill in all fields.");
       return;
     }
 
-<<<<<<< HEAD
-    axios
-      .post(
-=======
     try {
       const response = await axios.post(
->>>>>>> b75c482 (Fix dropdown and API integration)
         `${BASE_URL}/predict`,
         {
           company: selectedCompany,
@@ -96,19 +64,6 @@ function App() {
           fuel_type: selectedFuelType,
           kms_driven: parseInt(kmsDriven),
         },
-<<<<<<< HEAD
-        {
-          headers: { "Content-Type": "application/json" },
-        }
-      )
-      .then((response) => {
-        setResult(response.data.estimated_price);
-      })
-      .catch((error) => {
-        console.error("Prediction failed:", error);
-        alert("Prediction failed. Please check your inputs or try again.");
-      });
-=======
         { headers: { "Content-Type": "application/json" } }
       );
 
@@ -116,13 +71,17 @@ function App() {
       setResult(response.data.estimated_price);
     } catch (error) {
       console.error("❌ Prediction failed:", error);
-      alert("Prediction failed. Please check your inputs or try again.");
+      window.alert("Prediction failed. Please check your inputs or try again.");
     }
->>>>>>> b75c482 (Fix dropdown and API integration)
   };
 
   if (loading) {
-    return <p>Loading dropdowns...</p>;
+    return (
+      <div className="App" style={{ textAlign: 'center', paddingTop: '50px' }}>
+        <h2>Loading Car Options...</h2>
+        <p>Awaiting response from backend at: {BASE_URL}</p>
+      </div>
+    );
   }
 
   return (
