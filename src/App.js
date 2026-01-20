@@ -3,39 +3,25 @@ import axios from "axios";
 import "./App.css";
 
 function App() {
+  /* 1. CONFIGURATION*/
   const BASE_URL = "https://car-price-predictor-zk01.onrender.com";
 
-
+  /* 2. STATE DEFINITIONS (Data React remembers)*/
   const [companies, setCompanies] = useState([]);
   const [modelsByCompany, setModelsByCompany] = useState({});
+  const [fuelTypes, setFuelTypes] = useState([]);
+  const [years, setYears] = useState([]);
+
   const [selectedCompany, setSelectedCompany] = useState("");
   const [selectedModel, setSelectedModel] = useState("");
-  const [fuelTypes, setFuelTypes] = useState([]);
   const [selectedFuelType, setSelectedFuelType] = useState("");
-  const [years, setYears] = useState([]);
   const [selectedYear, setSelectedYear] = useState("");
   const [kmsDriven, setKmsDriven] = useState("");
+
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const fetchOptions = async () => {
-      try {
-        const response = await axios.get(`${BASE_URL}/options`);
-        setCompanies(response.data.companies || []);
-        setModelsByCompany(response.data.models_by_company || {});
-        setFuelTypes(response.data.fuel_types || []);
-        setYears(response.data.years || []);
-      } catch (error) {
-        console.error("Error fetching dropdown options:", error);
-        window.alert("Failed to load dropdowns. Start backend first?");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchOptions();
-  }, []);
+  /*3. EVENT HANDLER LOGIC(Runs on user actions)*/
 
   const handleCompanyChange = (e) => {
     const company = e.target.value;
@@ -44,8 +30,15 @@ function App() {
   };
 
   const handlePredict = async () => {
-    if (!selectedCompany || !selectedModel || !selectedYear || !selectedFuelType || !kmsDriven) {
-      return window.alert("Please fill in all fields");
+    if (
+      !selectedCompany ||
+      !selectedModel ||
+      !selectedYear ||
+      !selectedFuelType ||
+      !kmsDriven
+    ) {
+      alert("Please fill all fields");
+      return;
     }
 
     try {
@@ -58,16 +51,38 @@ function App() {
           fuel_type: selectedFuelType,
           kms_driven: parseInt(kmsDriven),
         },
-        { headers: { "Content-Type": "application/json" } }
+        {
+          headers: { "Content-Type": "application/json" },
+        }
       );
 
       setResult(response.data.estimated_price);
     } catch (error) {
-      console.error("Prediction failed:", error);
-      window.alert("Prediction failed. Check backend console.");
+      alert("Prediction failed");
     }
   };
 
+  /* 4. useEffect(Runs automatically on page load)*/
+  useEffect(() => {
+    const fetchOptions = async () => {
+      try {
+        const response = await axios.get(`${BASE_URL}/options`);
+
+        setCompanies(response.data.companies || []);
+        setModelsByCompany(response.data.models_by_company || {});
+        setFuelTypes(response.data.fuel_types || []);
+        setYears(response.data.years || []);
+      } catch (error) {
+        alert("Failed to load dropdown options");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchOptions();
+  }, []);
+
+  /* 5. UI (RENDERING)*/
   if (loading) return <h2>Loading options...</h2>;
 
   return (
